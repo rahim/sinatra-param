@@ -52,7 +52,7 @@ module Sinatra
           raise exception
         end
 
-        error = "Invalid parameters [#{names.join(', ')}]"
+        error = "Invalid parameters #{formatted_names_list(names)}"
         if content_type and content_type.match(mime_type(:json))
           error = {message: error, errors: {names => exception.message}}.to_json
         end
@@ -75,7 +75,7 @@ module Sinatra
           raise exception
         end
 
-        error = "Invalid parameters [#{names.join(', ')}]"
+        error = "Invalid parameters #{formatted_names_list(names)}"
         if content_type and content_type.match(mime_type(:json))
           error = {message: error, errors: {names => exception.message}}.to_json
         end
@@ -109,9 +109,9 @@ module Sinatra
       options.each do |key, value|
         case key
         when :required
-          raise InvalidParameterError, "Parameter '#{param_name}' is required" if value && param_value.nil?
+          raise InvalidParameterError, "'#{param_name}' is required" if value && param_value.nil?
         when :blank
-          raise InvalidParameterError, "Parameter '#{param_name}' cannot be blank" if !value && case param_value
+          raise InvalidParameterError, "'#{param_name}' cannot be blank" if !value && case param_value
           when String
             !(/\S/ === param_value)
           when Array, Hash
@@ -120,35 +120,35 @@ module Sinatra
             param_value.nil?
           end
         when :format
-          raise InvalidParameterError, "Parameter must be a string if using the format validation" unless param_value.kind_of?(String)
-          raise InvalidParameterError, "Parameter must match format #{value}" unless param_value =~ value
+          raise InvalidParameterError, "'#{param_name}' must be a string if using the format validation" unless param_value.kind_of?(String)
+          raise InvalidParameterError, "'#{param_name}' must match format #{value}" unless param_value =~ value
         when :is
-          raise InvalidParameterError, "Parameter must be #{value}" unless param_value === value
+          raise InvalidParameterError, "'#{param_name}' must be #{value}" unless param_value === value
         when :in, :within, :range
-          raise InvalidParameterError, "Parameter must be within #{value}" unless param_value.nil? || case value
+          raise InvalidParameterError, "'#{param_name}' must be within #{value}" unless param_value.nil? || case value
           when Range
             value.include?(param_value)
           else
             Array(value).include?(param_value)
           end
         when :min
-          raise InvalidParameterError, "Parameter cannot be less than #{value}" unless param_value.nil? || value <= param_value
+          raise InvalidParameterError, "'#{param_name}' cannot be less than #{value}" unless param_value.nil? || value <= param_value
         when :max
-          raise InvalidParameterError, "Parameter cannot be greater than #{value}" unless param_value.nil? || value >= param_value
+          raise InvalidParameterError, "'#{param_name}' cannot be greater than #{value}" unless param_value.nil? || value >= param_value
         when :min_length
-          raise InvalidParameterError, "Parameter cannot have length less than #{value}" unless param_value.nil? || value <= param_value.length
+          raise InvalidParameterError, "'#{param_name}' cannot have length less than #{value}" unless param_value.nil? || value <= param_value.length
         when :max_length
-          raise InvalidParameterError, "Parameter cannot have length greater than #{value}" unless param_value.nil? || value >= param_value.length
+          raise InvalidParameterError, "'#{param_name}' cannot have length greater than #{value}" unless param_value.nil? || value >= param_value.length
         end
       end
     end
 
     def validate_one_of!(params, names, options)
-      raise InvalidParameterError, "Only one of [#{names.join(', ')}] is allowed" if names.count{|name| present?(params[name])} > 1
+      raise InvalidParameterError, "Only one of #{formatted_names_list(names)} is allowed" if names.count{|name| present?(params[name])} > 1
     end
 
     def validate_any_of!(params, names, options)
-      raise InvalidParameterError, "One of parameters [#{names.join(', ')}] is required" if names.count{|name| present?(params[name])} < 1
+      raise InvalidParameterError, "One of #{formatted_names_list(names)} is required" if names.count{|name| present?(params[name])} < 1
     end
 
     # ActiveSupport #present? and #blank? without patching Object
@@ -158,6 +158,14 @@ module Sinatra
 
     def blank?(object)
       object.respond_to?(:empty?) ? object.empty? : !object
+    end
+
+    def single_quote_wrapped(str)
+      "'#{str}'"
+    end
+
+    def formatted_names_list(names)
+      names.map { |n| single_quote_wrapped(n) }.join(',')
     end
   end
 
